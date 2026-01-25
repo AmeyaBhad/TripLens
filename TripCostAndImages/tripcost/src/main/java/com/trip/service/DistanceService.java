@@ -1,0 +1,16 @@
+package com.trip.service;
+
+
+import com.trip.util.HaversineUtil;
+import org.springframework.stereotype.Service;
+
+@Service
+public class DistanceService {
+
+    public double getDistance(double[] src, double[] dest) {
+        return HaversineUtil.calculateDistance(
+            src[0], src[1],
+            dest[0], dest[1]
+        );
+    }
+}
