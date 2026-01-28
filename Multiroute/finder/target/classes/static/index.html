@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Route Viewer</title>
+
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        #map { height: 90vh; }
+        #info { padding: 10px; font-weight: bold; }
+    </style>
+</head>
+
+<body>
+
+<button onclick="loadRoute()">Show Route</button>
+<div id="info"></div>
+<div id="map"></div>
+
+<script>
+    const map = L.map('map').setView([18.5204, 73.8567], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let routeLayer;
+    let markers = [];
+
+    async function loadRoute() {
+
+        // 🔹 SYSTEM GENERATED OUTPUT
+        // (Later this can come from another API)
+        const systemOutput = {
+            location: "Pune",
+            spots: [
+                {
+                    name: "Shaniwar Wada",
+                    lat: "18.5194",
+                    lon: "73.8553"
+                },
+                {
+                    name: "Aga Khan Palace",
+                    lat: "18.5523",
+                    lon: "73.9015"
+                }
+            ]
+        };
+
+        // Clear old markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        // Convert spots → ORS format
+        const coordinates = systemOutput.spots.map(s => [
+            parseFloat(s.lon),
+            parseFloat(s.lat)
+        ]);
+
+        // Add markers
+        systemOutput.spots.forEach((s, i) => {
+            const marker = L.marker([s.lat, s.lon])
+                .addTo(map)
+                .bindPopup(`${i + 1}. ${s.name}`);
+            markers.push(marker);
+        });
+
+        // Remove old route
+        if (routeLayer) {
+            map.removeLayer(routeLayer);
+        }
+
+        // Call backend
+        const response = await fetch("http://localhost:8080/api/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ coordinates })
+        });
+
+        const geoJson = await response.json();
+
+        // 🔹 DRAW ROUTE
+        routeLayer = L.geoJSON(geoJson, {
+            style: { weight: 5 }
+        }).addTo(map);
+
+        // Auto zoom
+        map.fitBounds(routeLayer.getBounds());
+
+        // Distance & Time
+        const summary = geoJson.features[0].properties.summary;
+
+        document.getElementById("info").innerHTML =
+            `Distance: ${(summary.distance / 1000).toFixed(2)} km |
+             Time: ${(summary.duration / 60).toFixed(1)} mins`;
+    }
+</script>
+
+</body>
+</html>
